@@ -37,5 +37,14 @@
       To begin the development, run `npm start` or `yarn start`.
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
+    <script type="application/javascript">
+        self.languagePluginUrl = self.location.href + "pyodide/";
+        self.is_rule_followed = function(rule_text, input_text) {
+            // This gets replaced with a Python method after pyodide is loaded.
+            return rule_text.indexOf(input_text) >= 0;
+        }
+    </script>
+    <script type="application/javascript" src="pyodide/pyodide.js"></script>
+
   </body>
 </html>

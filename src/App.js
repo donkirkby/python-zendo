@@ -15,6 +15,19 @@ class App extends Component {
       new_input: "",
       inputs: []  // [{ text: "...", follows_rule: true}]
     };
+    let app = this;
+
+    if (window.languagePluginLoader === undefined) {
+        console.log('Pyodide is not loaded.');
+    } else {
+        window.languagePluginLoader.then(function() {
+            fetch('rule_runner.py').then(function (response) {
+                return response.text();
+            }).then(function (rule_runner_source) {
+                window.pyodide.runPython(rule_runner_source);
+            });
+        });
+    }
   }
 
   handleRuleChange = rule_text => {
@@ -48,18 +61,21 @@ class App extends Component {
     if (this.state.new_input === "") {
         return;
     }
+    let is_rule_followed = window.is_rule_followed(
+        this.state.rule,
+        this.state.new_input);
     this.setState({
         new_input: "",
         inputs: this.state.inputs.concat([{
             text: this.state.new_input,
-            follows_rule: false
+            follows_rule: is_rule_followed
         }])
     });
   };
 
   render() {
     return (
-      <div className="App">
+      <div className="App" style={{textAlign: "start"}}>
         <button
             type="button"
             onClick={this.handleVisibilityChange}
@@ -82,9 +98,14 @@ class App extends Component {
                 showLineNumbers: true,
                 tabSize: 4,
             }}/>}
+          <ul>
           {this.state.inputs.map((entry, entry_index) => (
-              <pre key={entry_index}>{entry.text}</pre>
+              <li key={"item" + entry_index}>
+                <pre key={"item_text" + entry_index} style={{display: "inline"}}>{entry.text}</pre>
+                <span> {(entry.follows_rule && "Y") || "N"}</span>
+              </li>
           ))}
+          </ul>
           <input
               type="text"
               placeholder="Type input here."
