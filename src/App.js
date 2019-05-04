@@ -15,7 +15,6 @@ class App extends Component {
       new_input: "",
       inputs: []  // [{ text: "...", follows_rule: true}]
     };
-    let app = this;
 
     if (window.languagePluginLoader === undefined) {
         console.log('Pyodide is not loaded.');

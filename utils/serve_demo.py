@@ -4,6 +4,7 @@ Only useful for testing, but it sets the MIME types correctly.
 npm start will serve the Javascript files, but pyodide doesn't work.
 """
 import errno
+import re
 import shutil
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from http.server import SimpleHTTPRequestHandler
@@ -90,8 +91,8 @@ def copy_react(react_dir, docs_dir):
             rel_path = os.path.relpath(source_path, react_dir)
             target_path = os.path.join(docs_dir, rel_path)
             os.makedirs(target_path, exist_ok=True)
-        for file_name in file_names:
-            if file_name == 'favicon.ico':
+        for file_name in sorted(file_names):
+            if file_name == 'favicon.ico' or re.match(r'test.*\.py$', file_name):
                 continue
             source_path = os.path.join(source_dir, file_name)
             rel_path = os.path.relpath(source_path, react_dir)
@@ -132,6 +133,7 @@ def main():
         '.wasm': 'application/wasm',
     })
     SimpleHTTPRequestHandler.directory = args.docs_dir
+    os.chdir(args.docs_dir)
 
     print("Serving at port", args.port, 'from', SimpleHTTPRequestHandler.directory)
     httpd = launch(args.port)
