@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import AceEditor from 'react-ace';
 import './App.css';
+import rule_runner from './rule_runner.py';
 
 import 'brace/mode/python';
 import 'brace/theme/github';
@@ -20,7 +21,7 @@ class App extends Component {
         console.log('Pyodide is not loaded.');
     } else {
         window.languagePluginLoader.then(function() {
-            fetch('rule_runner.py').then(function (response) {
+            fetch(rule_runner).then(function (response) {
                 return response.text();
             }).then(function (rule_runner_source) {
                 window.pyodide.runPython(rule_runner_source);
