@@ -2,6 +2,8 @@ import React, { Component } from 'react';
 import AceEditor from 'react-ace';
 import './App.css';
 import rule_runner from './rule_runner.py';
+import thumb_up from './thumb-up-3x.png';
+import thumb_down from './thumb-down-3x.png';
 
 import 'brace/mode/python';
 import 'brace/theme/github';
@@ -10,7 +12,11 @@ class App extends Component {
   constructor() {
     super();
     this.state = {
-      rule: "",
+      rule: `\
+input_text = input()
+is_rule_followed = len(input_text) <= 4
+print(is_rule_followed)
+`,
       is_rule_visible: true,
       visibility_button_name: "Hide Rule",
       new_input: "",
@@ -101,8 +107,8 @@ class App extends Component {
           <ul>
           {this.state.inputs.map((entry, entry_index) => (
               <li key={"item" + entry_index}>
+                <img src={(entry.follows_rule && thumb_up) || thumb_down}/>
                 <pre key={"item_text" + entry_index} style={{display: "inline"}}>{entry.text}</pre>
-                <span> {(entry.follows_rule && "Y") || "N"}</span>
               </li>
           ))}
           </ul>
