@@ -15,14 +15,15 @@ def is_rule_followed(rule_text: str, input_text: str) -> bool:
     mock_stdout = StringIO()
     sys.stdout = mock_stdout
     sys.stdin = StringIO(input_text)
+    # noinspection PyBroadException
     try:
         try:
-
-            exec(rule_text)
+            global_variables = {}
+            exec(rule_text, global_variables)
         finally:
             sys.stdout = original_stdout
             sys.stdin = original_stdin
-    except:
+    except BaseException:
         return False
     stdout_text = mock_stdout.getvalue()
     return stdout_text.strip() == 'True'
