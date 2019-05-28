@@ -17,6 +17,7 @@ input_text = input()
 is_rule_followed = len(input_text) <= 4
 print(is_rule_followed)
 `,
+      stdout: "",
       is_rule_visible: true,
       visibility_button_name: "Hide Rule",
       new_input: "",
@@ -67,11 +68,14 @@ print(is_rule_followed)
     if (this.state.new_input === "") {
         return;
     }
-    let is_rule_followed = window.is_rule_followed(
+    let rule_results = window.check_rule(
         this.state.rule,
         this.state.new_input);
+    let is_rule_followed = rule_results[0],
+        output_text = rule_results[1];
     this.setState({
         new_input: "",
+        stdout: output_text,
         inputs: this.state.inputs.concat([{
             text: this.state.new_input,
             follows_rule: is_rule_followed
@@ -104,10 +108,27 @@ print(is_rule_followed)
                 showLineNumbers: true,
                 tabSize: 4,
             }}/>}
+          <p>Output:</p>
+        {this.state.is_rule_visible && <AceEditor
+            value={this.state.stdout}
+            theme="github"
+            height="10em"
+            fontSize={18}
+            showPrintMargin={true}
+            showGutter={true}
+            highlightActiveLine={true}
+            editorProps={{
+                $blockScrolling: Infinity,
+                visibility: this.state.rule_visibility
+            }}
+            setOptions={{
+                showLineNumbers: true,
+                tabSize: 4,
+            }}/>}
           <ul>
           {this.state.inputs.map((entry, entry_index) => (
               <li key={"item" + entry_index}>
-                <img src={(entry.follows_rule && thumb_up) || thumb_down}/>
+                <img alt={entry.follows_rule} src={(entry.follows_rule && thumb_up) || thumb_down}/>
                 <pre key={"item_text" + entry_index} style={{display: "inline"}}>{entry.text}</pre>
               </li>
           ))}

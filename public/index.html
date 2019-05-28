@@ -39,9 +39,9 @@
     -->
     <script type="application/javascript">
         self.languagePluginUrl = self.location.href + "pyodide/";
-        self.is_rule_followed = function(rule_text, input_text) {
+        self.check_rule = function(rule_text, input_text) {
             // This gets replaced with a Python method after pyodide is loaded.
-            return rule_text.indexOf(input_text) >= 0;
+            return [rule_text.indexOf(input_text) >= 0, "Pyodide is not loaded."];
         }
     </script>
     <script type="application/javascript" src="pyodide/pyodide.js"></script>

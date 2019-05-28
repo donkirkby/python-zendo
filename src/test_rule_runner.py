@@ -1,4 +1,6 @@
-from rule_runner import is_rule_followed
+from pathlib import Path
+
+from rule_runner import is_rule_followed, check_rule
 
 
 def test_true():
@@ -47,3 +49,52 @@ print(is_rule_followed)
     input_text = 'Good'
 
     assert is_rule_followed(rule_text, input_text)
+
+
+def test_check_rule_passes():
+    rule_text = """\
+print('   True   ')
+"""
+    input_text = 'ignored'
+    expected_output = '   True   \n'
+    expected_is_followed = True
+
+    is_followed, output = check_rule(rule_text, input_text)
+
+    assert expected_is_followed == is_followed
+    assert expected_output == output
+
+
+def test_check_rule_output():
+    rule_text = """\
+print('Hello, World!')
+"""
+    input_text = 'ignored'
+    expected_output = 'Hello, World!\n'
+    expected_is_followed = False
+
+    is_followed, output = check_rule(rule_text, input_text)
+
+    assert expected_is_followed == is_followed
+    assert expected_output == output
+
+
+def test_check_rule_error():
+    rule_text = """\
+1/0
+"""
+    input_text = 'ignored'
+    source_path = Path(__file__).parent / "rule_runner.py"
+    expected_output = f"""\
+Traceback (most recent call last):
+  File "{source_path}", line 38, in check_rule
+    exec(rule_text, global_variables)
+  File "<string>", line 1, in <module>
+ZeroDivisionError: division by zero
+"""
+    expected_is_followed = False
+
+    is_followed, output = check_rule(rule_text, input_text)
+
+    assert expected_is_followed == is_followed
+    assert expected_output == output
