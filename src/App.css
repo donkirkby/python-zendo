@@ -19,6 +19,22 @@
   color: white;
 }
 
+.ace_editor {
+  background-color: #D9BDC5!important;
+}
+
+input {
+  background-color: #EADBDF;
+}
+
+button {
+  background-color: #BCAF9C;
+}
+
+.ace_active-line {
+  background-color: #E8C7DE!important;
+}
+
 .App-link {
   color: #61dafb;
 }

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """ Run the demo using the simple HTTP server.
 
 Only useful for testing, but it sets the MIME types correctly.

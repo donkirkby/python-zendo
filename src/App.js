@@ -124,33 +124,35 @@ print(is_rule_followed)
                     onChange={this.handleRuleChange}
                     mode="python"
                     theme="github"
+                    width="100%"
                     fontSize={18}
                     showPrintMargin={true}
-                    showGutter={true}
+                    showGutter={false}
                     highlightActiveLine={true}
                     editorProps={{
                         $blockScrolling: Infinity,
                         visibility: this.state.rule_visibility
                     }}
                     setOptions={{
-                        showLineNumbers: true,
+                        showLineNumbers: false,
                         tabSize: 4,
                     }}/>}
                 <p>Output:</p>
                 {this.state.is_rule_visible && <AceEditor
                     value={this.state.stdout}
                     theme="github"
+                    width="100%"
                     height="10em"
                     fontSize={18}
                     showPrintMargin={true}
-                    showGutter={true}
+                    showGutter={false}
                     highlightActiveLine={true}
                     editorProps={{
                         $blockScrolling: Infinity,
                         visibility: this.state.rule_visibility
                     }}
                     setOptions={{
-                        showLineNumbers: true,
+                        showLineNumbers: false,
                         tabSize: 4,
                     }}/>}
                 <ul>
