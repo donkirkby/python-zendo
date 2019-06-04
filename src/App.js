@@ -11,17 +11,24 @@ import 'brace/theme/github';
 class App extends Component {
     constructor() {
         super();
-        this.state = {
-            rule: `\
-input_text = input()
+        let canSave = this.localStorageAvailable(),
+            rule_text = canSave ? window.localStorage.text : '';
+        if (rule_text === '' || rule_text === undefined) {
+            rule_text = `\
+input_text = input().strip()
 is_rule_followed = len(input_text) <= 4
 print(is_rule_followed)
-`,
+`;
+        }
+        this.state = {
+            rule: rule_text,
             stdout: "",
             is_rule_visible: true,
             visibility_button_name: "Hide Rule",
             new_input: "",
-            inputs: []  // [{ text: "...", follows_rule: true}]
+            inputs: [],  // [{ text: "...", follows_rule: true}]
+            can_save: canSave,
+            will_save: false
         };
 
         if (window.languagePluginLoader === undefined) {
@@ -37,10 +44,31 @@ print(is_rule_followed)
         }
     }
 
+    localStorageAvailable = () => {
+        try {
+            let storage = window.localStorage,
+                x = '__storage_test__';
+            storage.setItem(x, x);
+            storage.removeItem(x);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    };
+
     handleRuleChange = rule_text => {
         this.setState({
             rule: rule_text
         });
+        if (this.state.can_save && !this.state.will_save) {
+            window.setTimeout(this.saveBackup, 1000);
+            this.setState({will_save: true});
+        }
+    };
+
+    saveBackup = () => {
+        window.localStorage.text = this.state.rule;
+        this.setState({will_save: false});
     };
 
     handleInputChange = evt => {
