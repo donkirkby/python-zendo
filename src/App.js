@@ -32,13 +32,13 @@ class App extends Component {
         this.state = {
             rule: rule_text,
             rule_guess: rule_guess,
-            stdout: "",
             is_rule_visible: true,
             visibility_button_name: "Hide Rule",
             is_guess_visible: false,
             guess_button_name: "Show Guess",
             new_input: "",
             inputs: [],  // [{ text: "...", follows_rule: true}]
+            selected_input: 0,
             can_save: canSave,
             will_save: false
         };
@@ -162,15 +162,23 @@ class App extends Component {
         let new_input_entry = this.updateInput(
             {text: this.state.new_input},
             this.state.rule,
-            this.state.is_guess_visible && this.state.rule_guess);
+            this.state.is_guess_visible && this.state.rule_guess),
+            inputs = this.state.inputs.concat([new_input_entry]),
+            selected_input = inputs.length - 1;
         this.setState({
             new_input: "",
-            stdout: new_input_entry.rule_output,
-            inputs: this.state.inputs.concat([new_input_entry])
+            inputs: inputs,
+            selected_input: selected_input
         });
     };
 
+    handleInputSelected = event => {
+        this.setState({selected_input: parseInt(event.target.value)});
+    };
+
     render() {
+        let selected_input_index = this.state.selected_input;
+        let selected_input = this.state.inputs[selected_input_index];
         return (
             <div className="App" style={{textAlign: "start"}}>
                 <button
@@ -178,7 +186,8 @@ class App extends Component {
                     onClick={this.handleVisibilityChange}
                     className="small"
                 >{this.state.visibility_button_name}</button>
-                {this.state.is_rule_visible && <AceEditor
+                {this.state.is_rule_visible && <div>
+                <AceEditor
                     value={this.state.rule}
                     onChange={this.handleRuleChange}
                     mode="python"
@@ -194,10 +203,10 @@ class App extends Component {
                     setOptions={{
                         showLineNumbers: false,
                         tabSize: 4,
-                    }}/>}
+                    }}/>
                 <p>Output:</p>
-                {this.state.is_rule_visible && <AceEditor
-                    value={this.state.stdout}
+                <AceEditor
+                    value={selected_input && selected_input.rule_output}
                     mode="text"
                     theme="github"
                     width="100%"
@@ -212,22 +221,30 @@ class App extends Component {
                     setOptions={{
                         showLineNumbers: false,
                         tabSize: 4,
-                    }}/>}
-                <ul>
-
-                    {this.state.inputs.map((entry, entry_index) => (
-                        <li key={"item" + entry_index}>
-                            <img alt={entry.follows_rule} src={(entry.follows_rule && thumb_up) || thumb_down}/>
+                    }}/>
+                </div>}
+                {this.state.inputs.map((entry, entry_index) => {
+                    return <div key={"item" + entry_index}>
+                        <label>
+                            <input type="radio"
+                                   value={entry_index}
+                                   name="selected_input"
+                                   onChange={this.handleInputSelected}
+                                   checked={entry_index === selected_input_index}/>
+                            <img alt={entry.follows_rule.toString()}
+                                 src={(entry.follows_rule && thumb_up) || thumb_down}/>
                             <pre key={"item_text" + entry_index} style={{display: "inline"}}>{entry.text}</pre>
-                            <img alt={entry.follows_rule_guess}
+                            <img alt={
+                                (entry.follows_rule_guess !== undefined &&
+                                    entry.follows_rule_guess).toString()}
                                  src={(entry.follows_rule_guess === undefined && blank) ||
                                  (entry.is_mismatch &&
                                      ((entry.follows_rule_guess && thumb_up_red) || thumb_down_red)) ||
-                                     ((entry.follows_rule_guess && thumb_up) || thumb_down)
+                                 ((entry.follows_rule_guess && thumb_up) || thumb_down)
                                  }/>
-                        </li>
-                    ))}
-                </ul>
+                        </label>
+                    </div>
+                })}
                 <input
                     type="text"
                     placeholder="Type input here."
@@ -261,6 +278,24 @@ class App extends Component {
                             showLineNumbers: false,
                             tabSize: 4,
                         }}/>
+                <p>Output:</p>
+                <AceEditor
+                    value={selected_input && selected_input.guess_output}
+                    mode="text"
+                    theme="github"
+                    width="100%"
+                    height="10em"
+                    fontSize={18}
+                    showPrintMargin={true}
+                    showGutter={false}
+                    highlightActiveLine={true}
+                    editorProps={{
+                        $blockScrolling: Infinity
+                    }}
+                    setOptions={{
+                        showLineNumbers: false,
+                        tabSize: 4,
+                    }}/>
                 </div>}
             </div>
         );
