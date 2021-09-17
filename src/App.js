@@ -1,5 +1,12 @@
 import React, {Component} from 'react';
 import AceEditor from 'react-ace';
+// noinspection ES6CheckImport
+import { initializeApp } from "firebase/app";
+// noinspection ES6CheckImport
+import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
+// noinspection ES6CheckImport
+import { getDatabase, ref, child, push, set } from "firebase/database";
+
 import './App.css';
 import rule_runner from './rule_runner.py';
 import thumb_up from './thumb-up-3x.png';
@@ -16,10 +23,35 @@ input_text = input()
 is_rule_followed = True  # Replace this.
 print(is_rule_followed)
 `;
+const firebaseConfig = {
+    apiKey: "AIzaSyBzRnMig_BoFRALB0Aro-Zk3xPTTLT4DXI",
+    authDomain: "python-zendo.firebaseapp.com",
+    databaseURL: "https://python-zendo-default-rtdb.firebaseio.com",
+    projectId: "python-zendo",
+    storageBucket: "python-zendo.appspot.com",
+    messagingSenderId: "1078959710744",
+    appId: "1:1078959710744:web:f87097149476e5a148196d",
+    measurementId: "G-SVNXNWKY35"
+};
+
+// Initialize Firebase
+initializeApp(firebaseConfig);
+const database = getDatabase();
+const auth = getAuth();
+signInAnonymously(auth);
+let userId = undefined;
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        // User is signed in
+        userId = user.uid;
+    } else {
+        // User is signed out
+    }
+});
 
 class App extends Component {
-    constructor() {
-        super();
+    constructor(props) {
+        super(props);
         let canSave = this.localStorageAvailable(),
             rule_text = canSave ? window.localStorage.zendoRule : '',
             rule_guess = canSave ? window.localStorage.zendoRuleGuess : '';
@@ -30,6 +62,7 @@ class App extends Component {
             rule_guess = RULE_EXAMPLE;
         }
         this.state = {
+            gameId: '',
             rule: rule_text,
             rule_guess: rule_guess,
             is_rule_visible: true,
@@ -165,6 +198,12 @@ class App extends Component {
             this.state.is_guess_visible && this.state.rule_guess),
             inputs = this.state.inputs.concat([new_input_entry]),
             selected_input = inputs.length - 1;
+        let inputsPath = 'games/' + this.state.gameId + '/inputs';
+        let dbInput = push(ref(database, inputsPath));
+        set(dbInput, {
+            text: this.state.new_input,
+            author: userId
+        });
         this.setState({
             new_input: "",
             inputs: inputs,
@@ -176,11 +215,49 @@ class App extends Component {
         this.setState({selected_input: parseInt(event.target.value)});
     };
 
+    handleNewGame = () => {
+        let dbGame = push(ref(database, 'games'));
+        this.setState({gameId: dbGame.key});
+        let ownerPath = child(dbGame, 'players/' + userId);
+        set(ownerPath, 'owner');
+    };
+
+    handleGameIdChange = evt => {
+        this.setState({
+            gameId: evt.target.value
+        });
+    };
+
+    handleGameIdKeyPress = event => {
+        if (event.key === 'Enter') {
+            this.handleJoin();
+        }
+    };
+
+    handleJoin = () => {
+        let dbGame = ref(database, 'games/' + this.state.gameId);
+        let ownerPath = child(dbGame, 'pending/' + userId);
+        set(ownerPath, true);
+    };
+
     render() {
         let selected_input_index = this.state.selected_input;
         let selected_input = this.state.inputs[selected_input_index];
         return (
             <div className="App" style={{textAlign: "start"}}>
+                <div>
+                <button
+                    type="button"
+                    onClick={this.handleNewGame}
+                    className="small">Start</button>
+                <input
+                    type="text"
+                    placeholder="Type game id here."
+                    value={this.state.gameId}
+                    onChange={this.handleGameIdChange}
+                    onKeyPress={this.handleGameIdKeyPress}/>
+                <button type="button" onClick={this.handleJoin} className="small">Join</button>
+                </div>
                 <button
                     type="button"
                     onClick={this.handleVisibilityChange}

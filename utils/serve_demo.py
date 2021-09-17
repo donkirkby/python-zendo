@@ -2,6 +2,7 @@
 
 """ Run the demo using the simple HTTP server.
 
+Use `npm run build` to package all the Javascript before running this script.
 Only useful for testing, but it sets the MIME types correctly.
 npm start will serve the Javascript files, but pyodide doesn't work.
 """
