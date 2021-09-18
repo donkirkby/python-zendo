@@ -1,11 +1,11 @@
 import React, {Component} from 'react';
 import AceEditor from 'react-ace';
 // noinspection ES6CheckImport
-import { initializeApp } from "firebase/app";
+import {initializeApp} from "firebase/app";
 // noinspection ES6CheckImport
-import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
+import {getAuth, onAuthStateChanged, signInAnonymously} from "firebase/auth";
 // noinspection ES6CheckImport
-import { getDatabase, ref, child, push, set } from "firebase/database";
+import {child, getDatabase, onValue, push, ref, set} from "firebase/database";
 
 import './App.css';
 import rule_runner from './rule_runner.py';
@@ -62,7 +62,8 @@ class App extends Component {
             rule_guess = RULE_EXAMPLE;
         }
         this.state = {
-            gameId: '',
+            game_id: '',
+            is_writer: true,  // Writes the secret rule.
             rule: rule_text,
             rule_guess: rule_guess,
             is_rule_visible: true,
@@ -192,23 +193,13 @@ class App extends Component {
         if (this.state.new_input === "") {
             return;
         }
-        let new_input_entry = this.updateInput(
-            {text: this.state.new_input},
-            this.state.rule,
-            this.state.is_guess_visible && this.state.rule_guess),
-            inputs = this.state.inputs.concat([new_input_entry]),
-            selected_input = inputs.length - 1;
-        let inputsPath = 'games/' + this.state.gameId + '/inputs';
+        let inputsPath = 'games/' + this.state.game_id + '/inputs';
         let dbInput = push(ref(database, inputsPath));
         set(dbInput, {
             text: this.state.new_input,
             author: userId
         });
-        this.setState({
-            new_input: "",
-            inputs: inputs,
-            selected_input: selected_input
-        });
+        this.setState({new_input: ""});
     };
 
     handleInputSelected = event => {
@@ -217,14 +208,17 @@ class App extends Component {
 
     handleNewGame = () => {
         let dbGame = push(ref(database, 'games'));
-        this.setState({gameId: dbGame.key});
-        let ownerPath = child(dbGame, 'players/' + userId);
-        set(ownerPath, 'owner');
+        this.setState({game_id: dbGame.key, is_writer: true});
+        let ownerRef = child(dbGame, 'players/' + userId);
+        set(ownerRef, 'owner');
+        let inputsRef = child(dbGame, 'inputs');
+        onValue(inputsRef, this.handleInputsUpdated);
     };
 
     handleGameIdChange = evt => {
         this.setState({
-            gameId: evt.target.value
+            game_id: evt.target.value,
+            is_writer: false
         });
     };
 
@@ -235,9 +229,47 @@ class App extends Component {
     };
 
     handleJoin = () => {
-        let dbGame = ref(database, 'games/' + this.state.gameId);
-        let ownerPath = child(dbGame, 'pending/' + userId);
-        set(ownerPath, true);
+        let dbGame = ref(database, 'games/' + this.state.game_id);
+        let pendingRef = child(dbGame, 'pending/' + userId);
+        set(pendingRef, true);
+
+        let inputsRef = child(dbGame, 'inputs');
+        onValue(inputsRef, this.handleInputsUpdated);
+    };
+
+    handleInputsUpdated = (snapshot) => {
+        let inputsArray = snapshot.val();
+        if (inputsArray === null) {
+            return;
+        }
+        let inputsDisplay = [];
+        for (const [key, entry] of Object.entries(inputsArray)) {
+            if (entry.isRuleFollowed === undefined && this.state.is_writer) {
+                let newInputEntry = this.updateInput(
+                    {text: entry.text},
+                    this.state.rule,
+                    this.state.is_guess_visible && this.state.rule_guess);
+                inputsDisplay.push(newInputEntry);
+                let entryRef = child(snapshot.ref, key);
+
+                set(entryRef,
+                    {
+                        text: entry.text,
+                        isRuleFollowed: newInputEntry.follows_rule
+                    });
+            }
+            else {
+                inputsDisplay.push({
+                    text: entry.text,
+                    follows_rule: entry.isRuleFollowed
+                });
+            }
+        }
+        this.setState({
+            new_input: "",
+            inputs: inputsDisplay,
+            selected_input: inputsDisplay.length - 1
+        });
     };
 
     render() {
@@ -253,7 +285,7 @@ class App extends Component {
                 <input
                     type="text"
                     placeholder="Type game id here."
-                    value={this.state.gameId}
+                    value={this.state.game_id}
                     onChange={this.handleGameIdChange}
                     onKeyPress={this.handleGameIdKeyPress}/>
                 <button type="button" onClick={this.handleJoin} className="small">Join</button>
@@ -308,7 +340,7 @@ class App extends Component {
                                    name="selected_input"
                                    onChange={this.handleInputSelected}
                                    checked={entry_index === selected_input_index}/>
-                            <img alt={entry.follows_rule.toString()}
+                            <img alt={'' + entry.follows_rule}
                                  src={(entry.follows_rule && thumb_up) || thumb_down}/>
                             <pre key={"item_text" + entry_index} style={{display: "inline"}}>{entry.text}</pre>
                             <img alt={

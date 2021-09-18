@@ -1,0 +1,26 @@
+{
+  "comment": "This is a copy of the Firebase access rules.",
+  "rules": {
+    "games": {
+      "$gameId": {
+        "players": {
+          ".read": "data.child(auth.uid).val() == 'owner'",
+          ".write": "data.child(auth.uid).val() == 'owner' ||(!data.exists()&&newData.child(auth.uid).val()=='owner')"
+        },
+        "pending": {
+          ".read": "data.parent().child('players').child(auth.uid).val() === 'owner'",
+          ".write": "data.parent().child('players').child(auth.uid).val() === 'owner'",
+          "$uid": {
+            ".write": "$uid === auth.uid"
+          }
+        },
+        "inputs": {
+          "$inputId": {
+            ".read": "data.parent().parent().child('players').child(auth.uid).exists()",
+            ".write": "data.parent().parent().child('players').child(auth.uid).exists() && !data.exists()&&newData.child('author').val()==auth.uid"
+          }
+        }
+      }
+    }
+  }
+}
