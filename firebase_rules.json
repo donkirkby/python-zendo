@@ -3,21 +3,32 @@
   "rules": {
     "games": {
       "$gameId": {
+        ".read": "data.child('players').child(auth.uid).exists()",
         "players": {
-          ".read": "data.child(auth.uid).val() == 'owner'",
-          ".write": "data.child(auth.uid).val() == 'owner' ||(!data.exists()&&newData.child(auth.uid).val()=='owner')"
+          ".write": "data.child(auth.uid).child('role').val() == 'owner' ||(!data.exists()&&newData.child(auth.uid).child('role').val()=='owner')",
+          "$uid": {
+            ".write": "(auth.uid === $uid) && newData.child('role').val() === 'player'"
+          }
         },
         "pending": {
-          ".read": "data.parent().child('players').child(auth.uid).val() === 'owner'",
-          ".write": "data.parent().child('players').child(auth.uid).val() === 'owner'",
+          ".write": "data.parent().child('players').child(auth.uid).child('role').val() === 'owner'",
           "$uid": {
             ".write": "$uid === auth.uid"
           }
         },
         "inputs": {
           "$inputId": {
-            ".read": "data.parent().parent().child('players').child(auth.uid).exists()",
-            ".write": "data.parent().parent().child('players').child(auth.uid).exists() && !data.exists()&&newData.child('author').val()==auth.uid"
+            ".write": "data.parent().parent().child('players').child(auth.uid).child('role').val() === 'owner' || !data.exists() && newData.child('author').val()==auth.uid && !newData.child('isRuleFollowed').exists()",
+            "areGuessesFollowed": {
+              "$uid": {
+                ".write": "($uid === auth.uid) && data.parent().parent().parent().parent().parent().child('players').child(auth.uid).exists()"
+              }
+            }
+          }
+        },
+        "guesses": {
+          "$uid": {
+            ".write": "($uid === auth.uid) && data.parent().parent().child('players').child(auth.uid).exists()"
           }
         }
       }
