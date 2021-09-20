@@ -2,6 +2,32 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+The data is stored in a Firebase realtime database.
+
+* `games/$gameId` is a parent folder for all the details about a single game.
+  * `players/$userId` records which users are playing. Only users listed in here
+    can access anything in the game, except the pending list. Anyone can write a
+    record here if the list is empty, and they're making themselves the owner.
+    * `name` the player's name, as entered by them and copied from `pending`.
+    * `role` either 'owner' or 'player'.
+    * `isWriter` true if this player is writing the current rule. Not
+      implemented yet, so the owner is always the writer.
+  * `pending/$userId` records users that want to join the game. You can only
+    write your own id. The key's value is the player name.
+  * `inputs/$inputId` records inputs for the rule writer to process. You can
+    read the whole list, if you're in the players list. You can write a new
+    record, if the author matches your user id.
+    * `text` the input text, a single line.
+    * `author` the user id of the player who submitted it
+    * `isRuleFollowed` true, if the rule writer found that it followed the
+      secret rule.
+    * `areGuessesFollowed/$userId` true, if the rule guesser found that it
+      followed their rule guess. Writeable by the guesser.
+  * `profile` details of the game that are visible to all players, not
+    implemented yet. Maybe start and end times? Source code, once revealed?
+  * `guesses/$userId` holds the source code for each player's guess. Writeable
+    if you use your own user id, readable by all players in this game.
+
 ## Available Scripts
 
 In the project directory, you can run:

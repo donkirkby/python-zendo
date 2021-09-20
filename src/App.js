@@ -63,7 +63,9 @@ class App extends Component {
         }
         this.state = {
             game_id: '',
-            is_writer: true,  // Writes the secret rule.
+            player_name: '',
+            is_writer: true,  // This player writes the secret rule.
+            players: [],  // [{ name: name, userId: userId }]
             rule: rule_text,
             rule_guess: rule_guess,
             is_rule_visible: true,
@@ -73,8 +75,10 @@ class App extends Component {
             new_input: "",
             inputs: [],  // [{ text: "...", follows_rule: true}]
             selected_input: 0,
+            selected_player: 0,
             can_save: canSave,
-            will_save: false
+            will_save: false,
+            db_unsubscribes: []
         };
 
         if (window.languagePluginLoader === undefined) {
@@ -206,13 +210,24 @@ class App extends Component {
         this.setState({selected_input: parseInt(event.target.value)});
     };
 
+    handlePlayerSelected = event => {
+        this.setState({selected_player: parseInt(event.target.value)});
+    };
+
     handleNewGame = () => {
         let dbGame = push(ref(database, 'games'));
         this.setState({game_id: dbGame.key, is_writer: true});
         let ownerRef = child(dbGame, 'players/' + userId);
-        set(ownerRef, 'owner');
-        let inputsRef = child(dbGame, 'inputs');
-        onValue(inputsRef, this.handleInputsUpdated);
+        set(ownerRef, {
+            name: this.state.player_name,
+            role: 'owner'
+        }).then(() => {this.registerListeners(dbGame.key);});
+    };
+
+    handlePlayerNameChange = evt => {
+        this.setState({
+            player_name: evt.target.value
+        });
     };
 
     handleGameIdChange = evt => {
@@ -231,10 +246,41 @@ class App extends Component {
     handleJoin = () => {
         let dbGame = ref(database, 'games/' + this.state.game_id);
         let pendingRef = child(dbGame, 'pending/' + userId);
-        set(pendingRef, true);
+        set(pendingRef, this.state.player_name);
+        let playerRef = child(dbGame, 'players/' + userId);
+        set(playerRef, {
+            name: this.state.player_name,
+            role: 'player'
+        });
+        this.registerListeners(this.state.game_id);
+    };
 
+    registerListeners = (gameId) => {
+        let dbGame = ref(database, 'games/' + gameId);
+        let playersRef = child(dbGame, 'players')
         let inputsRef = child(dbGame, 'inputs');
-        onValue(inputsRef, this.handleInputsUpdated);
+        for (let unsubscribe of this.state.db_unsubscribes) {
+            unsubscribe();
+        }
+        let dbUnsubscribes = [];
+        dbUnsubscribes.push(onValue(inputsRef, this.handleInputsUpdated));
+        dbUnsubscribes.push(onValue(playersRef, this.handlePlayersUpdated));
+        this.setState({db_unsubscribes: dbUnsubscribes});
+    };
+
+    handlePlayersUpdated = (snapshot) => {
+        let playersArray = snapshot.val();
+        let playersDisplay = [];
+        for (const [playerId, player] of Object.entries(playersArray)) {
+            let display = {
+                name: player.name,
+                userId: playerId
+            };
+            playersDisplay.push(display);
+        }
+        this.setState({
+            players: playersDisplay
+        });
     };
 
     handleInputsUpdated = (snapshot) => {
@@ -275,20 +321,26 @@ class App extends Component {
     render() {
         let selected_input_index = this.state.selected_input;
         let selected_input = this.state.inputs[selected_input_index];
+        let selected_player_index = this.state.selected_player;
         return (
             <div className="App" style={{textAlign: "start"}}>
                 <div>
-                <button
-                    type="button"
-                    onClick={this.handleNewGame}
-                    className="small">Start</button>
-                <input
-                    type="text"
-                    placeholder="Type game id here."
-                    value={this.state.game_id}
-                    onChange={this.handleGameIdChange}
-                    onKeyPress={this.handleGameIdKeyPress}/>
-                <button type="button" onClick={this.handleJoin} className="small">Join</button>
+                    <input
+                        type="text"
+                        placeholder="Your name"
+                        value={this.state.player_name}
+                        onChange={this.handlePlayerNameChange}/>
+                    <button
+                        type="button"
+                        onClick={this.handleNewGame}
+                        className="small">Start</button>
+                    <input
+                        type="text"
+                        placeholder="Type game id here."
+                        value={this.state.game_id}
+                        onChange={this.handleGameIdChange}
+                        onKeyPress={this.handleGameIdKeyPress}/>
+                    <button type="button" onClick={this.handleJoin} className="small">Join</button>
                 </div>
                 <button
                     type="button"
@@ -332,6 +384,8 @@ class App extends Component {
                         tabSize: 4,
                     }}/>
                 </div>}
+                <div className="interactions">
+                <div className="inputs">
                 {this.state.inputs.map((entry, entry_index) => {
                     return <div key={"item" + entry_index}>
                         <label>
@@ -361,6 +415,23 @@ class App extends Component {
                     onChange={this.handleInputChange}
                     onKeyPress={this.handleInputKeyPress}/>
                 <button type="button" onClick={this.handleNewInput} className="small">Tell</button>
+                </div>
+                <div className="players">
+                    <p>Players:</p>
+                    {this.state.players.map((entry, entry_index) => {
+                        return <div key={"player" + entry_index}>
+                            <label>
+                                <input type="radio"
+                                       value={entry_index}
+                                       name="selected_player"
+                                       onChange={this.handlePlayerSelected}
+                                       checked={entry_index === selected_player_index}/>
+                                <span key={"player_name" + entry_index}>{entry.name}</span>
+                            </label>
+                        </div>
+                    })}
+                </div>
+                </div>
                 <p>
                 <button
                     type="button"
