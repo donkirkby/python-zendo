@@ -5,7 +5,7 @@ import {initializeApp} from "firebase/app";
 // noinspection ES6CheckImport
 import {getAuth, onAuthStateChanged, signInAnonymously} from "firebase/auth";
 // noinspection ES6CheckImport
-import {child, getDatabase, onValue, push, ref, set} from "firebase/database";
+import {child, getDatabase, onValue, push, ref, set, update} from "firebase/database";
 
 import './App.css';
 import rule_runner from './rule_runner.py';
@@ -53,37 +53,37 @@ class App extends Component {
     constructor(props) {
         super(props);
         let canSave = this.localStorageAvailable(),
-            rule_text = canSave ? window.localStorage.zendoRule : '',
-            rule_guess = canSave ? window.localStorage.zendoRuleGuess : '';
-        if (rule_text === '' || rule_text === undefined) {
-            rule_text = RULE_EXAMPLE;
+            ruleText = canSave ? window.localStorage.zendoRule : '',
+            ruleGuess = canSave ? window.localStorage.zendoRuleGuess : '';
+        if (ruleText === '' || ruleText === undefined) {
+            ruleText = RULE_EXAMPLE;
         }
-        if (rule_guess === '' || rule_guess === undefined) {
-            rule_guess = RULE_EXAMPLE;
+        if (ruleGuess === '' || ruleGuess === undefined) {
+            ruleGuess = RULE_EXAMPLE;
         }
         this.state = {
-            game_id: '',
-            player_name: '',
-            is_writer: true,  // This player writes the secret rule.
+            gameId: '',
+            playerName: '',
+            isWriter: true,  // This player writes the secret rule.
             players: [],  // [{ name: name, userId: userId }]
-            rule: rule_text,
-            rule_guess: rule_guess,  // displayed guess
-            user_guess: rule_guess,  // this user's guess
-            is_rule_visible: true,
-            visibility_button_name: "Hide Rule",
-            is_guess_visible: false,
-            guess_button_name: "Show Guess",
-            new_input: "",
-            selected_input: 0,
-            selected_player: 0,  // index in players
-            player_guesses: [], // [{ text: text, userId: userId }]
-            can_save: canSave,
-            will_save: false,
-            db_unsubscribes: [],
+            rule: ruleText,
+            ruleGuess: ruleGuess,  // displayed guess
+            userGuess: ruleGuess,  // this user's guess
+            isRuleVisible: true,
+            visibilityButtonName: "Hide Rule",
+            isGuessVisible: false,
+            guessButtonName: "Show Guess",
+            newInput: "",
+            selectedInput: 0,
+            selectedPlayer: 0,  // index in players
+            playerGuesses: [], // [{ text: text, userId: userId }]
+            canSave: canSave,
+            willSave: false,
+            dbUnsubscribes: [],
 
             // [{ text: "...",
-            //    follows_rule: bool,
-            //    follows_guesses: { userId: bool }}]
+            //    followsRule: bool,
+            //    followsGuesses: { userId: bool }}]
             inputs: []
         };
 
@@ -112,94 +112,94 @@ class App extends Component {
         }
     };
 
-    handleRuleChange = rule_text => {
-        this.updateRules(rule_text, this.state.rule_guess);
+    handleRuleChange = ruleText => {
+        this.updateRules(ruleText, this.state.ruleGuess);
     };
 
-    handleRuleGuessChange = rule_guess => {
-        this.updateRules(this.state.rule, rule_guess);
+    handleRuleGuessChange = ruleGuess => {
+        this.updateRules(this.state.rule, ruleGuess);
     };
 
-    updateRules = (rule_text, rule_guess, is_guess_visible) => {
-        if (is_guess_visible === undefined) {
-            is_guess_visible = this.state.is_guess_visible;
+    updateRules = (ruleText, ruleGuess, isGuessVisible) => {
+        if (isGuessVisible === undefined) {
+            isGuessVisible = this.state.isGuessVisible;
         }
         let updateInput = this.updateInput;
-        let new_inputs = this.state.inputs.map(function(old_input) {
-            return updateInput(old_input, rule_text, is_guess_visible && rule_guess);
+        let newInputs = this.state.inputs.map(function(oldInput) {
+            return updateInput(oldInput, ruleText, isGuessVisible && ruleGuess);
         });
         this.setState({
-            rule: rule_text,
-            rule_guess: rule_guess,
-            is_guess_visible: is_guess_visible,
-            inputs: new_inputs
+            rule: ruleText,
+            ruleGuess: ruleGuess,
+            isGuessVisible: isGuessVisible,
+            inputs: newInputs
         });
         if (this.isUserGuessSelected()) {
-            this.setState({user_guess: rule_guess})
+            this.setState({userGuess: ruleGuess})
         }
-        if (this.state.can_save && !this.state.will_save) {
+        if (this.state.canSave && !this.state.willSave) {
             window.setTimeout(this.saveBackup, 1000);
-            this.setState({will_save: true});
+            this.setState({willSave: true});
         }
     };
 
     isUserGuessSelected = () => {
         return (
             this.state.players.length === 0 ||
-            this.state.players[this.state.selected_player].userId === userId);
+            this.state.players[this.state.selectedPlayer].userId === userId);
     };
 
-    updateInput = (old_input, rule_text, rule_guess) => {
-        let new_input = {text: old_input.text};
-        if (rule_text && rule_text.length > 0) {
-            let rule_results = window.check_rule(rule_text, old_input.text);
-            new_input.follows_rule = rule_results[0];
-            new_input.rule_output = rule_results[1];
+    updateInput = (oldInput, ruleText, ruleGuess) => {
+        let newInput = {text: oldInput.text};
+        if (ruleText && ruleText.length > 0) {
+            let ruleResults = window.check_rule(ruleText, oldInput.text);
+            newInput.followsRule = ruleResults[0];
+            newInput.ruleOutput = ruleResults[1];
         }
-        if (rule_guess && rule_guess.length > 0) {
-            let rule_results = window.check_rule(rule_guess, old_input.text);
-            new_input.follows_rule_guess = rule_results[0];
-            new_input.guess_output = rule_results[1];
-            new_input.is_mismatch = (
-                new_input.follows_rule !== new_input.follows_rule_guess);
+        if (ruleGuess && ruleGuess.length > 0) {
+            let ruleResults = window.check_rule(ruleGuess, oldInput.text);
+            newInput.followsRuleGuess = ruleResults[0];
+            newInput.guessOutput = ruleResults[1];
+            newInput.isMismatch = (
+                newInput.followsRule !== newInput.followsRuleGuess);
         }
-        return new_input;
+        return newInput;
     };
 
     saveBackup = () => {
         window.localStorage.zendoRule = this.state.rule;
-        window.localStorage.zendoRuleGuess = this.state.rule_guess;
-        this.setState({will_save: false});
+        window.localStorage.zendoRuleGuess = this.state.ruleGuess;
+        this.setState({willSave: false});
     };
 
     handleInputChange = evt => {
         this.setState({
-            new_input: evt.target.value
+            newInput: evt.target.value
         });
     };
 
     handleVisibilityChange = () => {
-        if (this.state.is_rule_visible) {
+        if (this.state.isRuleVisible) {
             this.setState({
-                is_rule_visible: false,
-                visibility_button_name: "Show Rule"
+                isRuleVisible: false,
+                visibilityButtonName: "Show Rule"
             });
         } else {
             this.setState({
-                is_rule_visible: true,
-                visibility_button_name: "Hide Rule"
+                isRuleVisible: true,
+                visibilityButtonName: "Hide Rule"
             });
         }
 
     };
 
     handleGuessVisibilityChange = () => {
-        let is_guess_visible = ! this.state.is_guess_visible;
+        let isGuessVisible = ! this.state.isGuessVisible;
         this.setState({
-            is_guess_visible: is_guess_visible,
-            guess_button_name: is_guess_visible ? "Hide Guess" : "Show Guess"
+            isGuessVisible: isGuessVisible,
+            guessButtonName: isGuessVisible ? "Hide Guess" : "Show Guess"
         });
-        this.updateRules(this.state.rule, this.state.rule_guess, is_guess_visible);
+        this.updateRules(this.state.rule, this.state.ruleGuess, isGuessVisible);
     };
 
     handleInputKeyPress = event => {
@@ -209,63 +209,63 @@ class App extends Component {
     };
 
     handleNewInput = () => {
-        if (this.state.new_input === "") {
+        if (this.state.newInput === "") {
             return;
         }
-        let inputsPath = 'games/' + this.state.game_id + '/inputs';
+        let inputsPath = 'games/' + this.state.gameId + '/inputs';
         let dbInput = push(ref(database, inputsPath));
         set(dbInput, {
-            text: this.state.new_input,
+            text: this.state.newInput,
             author: userId
         });
-        this.setState({new_input: ""});
+        this.setState({newInput: ""});
     };
 
     handleInputSelected = event => {
-        this.setState({selected_input: parseInt(event.target.value)});
+        this.setState({selectedInput: parseInt(event.target.value)});
     };
 
     handlePlayerSelected = event => {
         let selectedPlayerIndex = (event === undefined
-                                  ? this.state.selected_player
+                                  ? this.state.selectedPlayer
                                   : parseInt(event.target.value)),
             selectedPlayer = this.state.players[selectedPlayerIndex];
         let guessText = '';
-        for (let guess of Object.values(this.state.player_guesses)) {
+        for (let guess of Object.values(this.state.playerGuesses)) {
             if (guess.userId === selectedPlayer.userId) {
                 guessText = guess.text;
                 break;
             }
         }
         if (selectedPlayer.userId === userId) {
-            guessText = this.state.user_guess;
+            guessText = this.state.userGuess;
         }
         this.setState({
-            selected_player: selectedPlayerIndex,
-            rule_guess: guessText
+            selectedPlayer: selectedPlayerIndex,
+            ruleGuess: guessText
         });
     };
 
     handleNewGame = () => {
         let dbGame = push(ref(database, 'games'));
-        this.setState({game_id: dbGame.key, is_writer: true});
+        this.setState({gameId: dbGame.key, isWriter: true});
         let ownerRef = child(dbGame, 'players/' + userId);
         set(ownerRef, {
-            name: this.state.player_name,
+            name: this.state.playerName,
             role: 'owner'
         }).then(() => {this.registerListeners(dbGame.key);});
     };
 
     handlePlayerNameChange = evt => {
         this.setState({
-            player_name: evt.target.value
+            playerName: evt.target.value
         });
     };
 
     handleGameIdChange = evt => {
         this.setState({
-            game_id: evt.target.value,
-            is_writer: false
+            gameId: evt.target.value,
+            isWriter: false
         });
     };
 
@@ -276,21 +276,20 @@ class App extends Component {
     };
 
     handleJoin = () => {
-        let dbGame = ref(database, 'games/' + this.state.game_id);
+        let dbGame = ref(database, 'games/' + this.state.gameId);
         let pendingRef = child(dbGame, 'pending/' + userId);
-        set(pendingRef, this.state.player_name);
+        set(pendingRef, this.state.playerName);
         let playerRef = child(dbGame, 'players/' + userId);
         set(playerRef, {
-            name: this.state.player_name,
+            name: this.state.playerName,
             role: 'player'
-        });
-        this.registerListeners(this.state.game_id);
+        }).then(() => {this.registerListeners(this.state.gameId);});
     };
 
     handleSubmitGuess = () => {
-        let dbGame = ref(database, 'games/' + this.state.game_id);
+        let dbGame = ref(database, 'games/' + this.state.gameId);
         let guessRef = child(dbGame, 'guesses/' + userId);
-        set(guessRef, this.state.rule_guess);
+        set(guessRef, this.state.ruleGuess);
     };
 
     registerListeners = (gameId) => {
@@ -298,14 +297,14 @@ class App extends Component {
         let playersRef = child(dbGame, 'players')
         let inputsRef = child(dbGame, 'inputs');
         let guessesRef = child(dbGame, 'guesses');
-        for (let unsubscribe of this.state.db_unsubscribes) {
+        for (let unsubscribe of this.state.dbUnsubscribes) {
             unsubscribe();
         }
         let dbUnsubscribes = [];
         dbUnsubscribes.push(onValue(inputsRef, this.handleInputsUpdated));
         dbUnsubscribes.push(onValue(playersRef, this.handlePlayersUpdated));
         dbUnsubscribes.push(onValue(guessesRef, this.handleGuessesUpdated));
-        this.setState({db_unsubscribes: dbUnsubscribes});
+        this.setState({dbUnsubscribes: dbUnsubscribes});
     };
 
     handleGuessesUpdated = (snapshot) => {
@@ -325,11 +324,11 @@ class App extends Component {
                 hasUserGuessed = true;
             }
         }
-        if (!hasUserGuessed && this.state.player_guesses.length === 0) {
-            guessesDisplay.push({ text: this.state.rule_guess, userId: userId});
+        if (!hasUserGuessed && this.state.playerGuesses.length === 0) {
+            guessesDisplay.push({ text: this.state.ruleGuess, userId: userId});
         }
         this.setState({
-            player_guesses: guessesDisplay
+            playerGuesses: guessesDisplay
         });
     };
 
@@ -359,39 +358,39 @@ class App extends Component {
         }
         let inputsDisplay = [];
         for (const [key, entry] of Object.entries(inputsArray)) {
-            if (entry.isRuleFollowed === undefined && this.state.is_writer) {
+            if (entry.isRuleFollowed === undefined && this.state.isWriter) {
                 let newInputEntry = this.updateInput(
                     {text: entry.text},
                     this.state.rule,
-                    this.state.is_guess_visible && this.state.rule_guess);
+                    this.state.isGuessVisible && this.state.ruleGuess);
                 inputsDisplay.push(newInputEntry);
                 let entryRef = child(snapshot.ref, key);
 
-                set(entryRef,
+                update(entryRef,
                     {
                         text: entry.text,
-                        isRuleFollowed: newInputEntry.follows_rule
+                        isRuleFollowed: newInputEntry.followsRule
                     });
             }
             else {
                 inputsDisplay.push({
                     text: entry.text,
-                    follows_rule: entry.isRuleFollowed
+                    followsRule: entry.isRuleFollowed
                 });
             }
         }
         this.setState({
-            new_input: "",
+            newInput: "",
             inputs: inputsDisplay,
-            selected_input: inputsDisplay.length - 1
+            selectedInput: inputsDisplay.length - 1
         });
     };
 
     render() {
-        let selected_input_index = this.state.selected_input;
-        let selected_input = this.state.inputs[selected_input_index];
-        let selected_player_index = this.state.selected_player,
-            selectedPlayer = this.state.players[selected_player_index],
+        let selectedInputIndex = this.state.selectedInput;
+        let selectedInput = this.state.inputs[selectedInputIndex];
+        let selectedPlayerIndex = this.state.selectedPlayer,
+            selectedPlayer = this.state.players[selectedPlayerIndex],
             selectedUserId = selectedPlayer !== undefined && selectedPlayer.userId;
         let isGuessReadOnly = selectedUserId !== userId;
         return (
@@ -400,7 +399,7 @@ class App extends Component {
                     <input
                         type="text"
                         placeholder="Your name"
-                        value={this.state.player_name}
+                        value={this.state.playerName}
                         onChange={this.handlePlayerNameChange}/>
                     <button
                         type="button"
@@ -409,7 +408,7 @@ class App extends Component {
                     <input
                         type="text"
                         placeholder="Type game id here."
-                        value={this.state.game_id}
+                        value={this.state.gameId}
                         onChange={this.handleGameIdChange}
                         onKeyPress={this.handleGameIdKeyPress}/>
                     <button type="button" onClick={this.handleJoin} className="small">Join</button>
@@ -418,8 +417,8 @@ class App extends Component {
                     type="button"
                     onClick={this.handleVisibilityChange}
                     className="small"
-                >{this.state.visibility_button_name}</button>
-                {this.state.is_rule_visible && <div>
+                >{this.state.visibilityButtonName}</button>
+                {this.state.isRuleVisible && <div>
                 <AceEditor
                     value={this.state.rule}
                     onChange={this.handleRuleChange}
@@ -439,7 +438,7 @@ class App extends Component {
                     }}/>
                 <p>Output:</p>
                 <AceEditor
-                    value={selected_input && selected_input.rule_output}
+                    value={selectedInput && selectedInput.ruleOutput}
                     mode="text"
                     readOnly={true}
                     theme="github"
@@ -459,24 +458,24 @@ class App extends Component {
                 </div>}
                 <div className="interactions">
                 <div className="inputs">
-                {this.state.inputs.map((entry, entry_index) => {
-                    return <div key={"item" + entry_index}>
+                {this.state.inputs.map((entry, entryIndex) => {
+                    return <div key={"item" + entryIndex}>
                         <label>
                             <input type="radio"
-                                   value={entry_index}
+                                   value={entryIndex}
                                    name="selected_input"
                                    onChange={this.handleInputSelected}
-                                   checked={entry_index === selected_input_index}/>
-                            <img alt={'' + entry.follows_rule}
-                                 src={(entry.follows_rule && thumb_up) || thumb_down}/>
-                            <pre key={"item_text" + entry_index} style={{display: "inline"}}>{entry.text}</pre>
+                                   checked={entryIndex === selectedInputIndex}/>
+                            <img alt={'' + entry.followsRule}
+                                 src={(entry.followsRule && thumb_up) || thumb_down}/>
+                            <pre key={"item_text" + entryIndex} style={{display: "inline"}}>{entry.text}</pre>
                             <img alt={
-                                (entry.follows_rule_guess !== undefined &&
-                                    entry.follows_rule_guess).toString()}
-                                 src={(entry.follows_rule_guess === undefined && blank) ||
-                                 (entry.is_mismatch &&
-                                     ((entry.follows_rule_guess && thumb_up_red) || thumb_down_red)) ||
-                                 ((entry.follows_rule_guess && thumb_up) || thumb_down)
+                                (entry.followsRuleGuess !== undefined &&
+                                    entry.followsRuleGuess).toString()}
+                                 src={(entry.followsRuleGuess === undefined && blank) ||
+                                 (entry.isMismatch &&
+                                     ((entry.followsRuleGuess && thumb_up_red) || thumb_down_red)) ||
+                                 ((entry.followsRuleGuess && thumb_up) || thumb_down)
                                  }/>
                         </label>
                     </div>
@@ -484,22 +483,22 @@ class App extends Component {
                 <input
                     type="text"
                     placeholder="Type input here."
-                    value={this.state.new_input}
+                    value={this.state.newInput}
                     onChange={this.handleInputChange}
                     onKeyPress={this.handleInputKeyPress}/>
                 <button type="button" onClick={this.handleNewInput} className="small">Tell</button>
                 </div>
                 <div className="players">
                     <p>Players:</p>
-                    {this.state.players.map((entry, entry_index) => {
-                        return <div key={"player" + entry_index}>
+                    {this.state.players.map((entry, entryIndex) => {
+                        return <div key={"player" + entryIndex}>
                             <label>
                                 <input type="radio"
-                                       value={entry_index}
+                                       value={entryIndex}
                                        name="selected_player"
                                        onChange={this.handlePlayerSelected}
-                                       checked={entry_index === selected_player_index}/>
-                                <span key={"player_name" + entry_index}>{entry.name}</span>
+                                       checked={entryIndex === selectedPlayerIndex}/>
+                                <span key={"player_name" + entryIndex}>{entry.name}</span>
                             </label>
                         </div>
                     })}
@@ -510,12 +509,12 @@ class App extends Component {
                     type="button"
                     onClick={this.handleGuessVisibilityChange}
                     className="small"
-                >{this.state.guess_button_name}</button>
+                >{this.state.guessButtonName}</button>
                 </p>
-                {this.state.is_guess_visible && <div>
+                {this.state.isGuessVisible && <div>
                     <p>Guess the rule:</p>
                     <AceEditor
-                        value={this.state.rule_guess}
+                        value={this.state.ruleGuess}
                         onChange={this.handleRuleGuessChange}
                         mode="python"
                         readOnly={isGuessReadOnly}
@@ -534,7 +533,7 @@ class App extends Component {
                         }}/>
                 <p>Output:</p>
                 <AceEditor
-                    value={selected_input && selected_input.guess_output}
+                    value={selectedInput && selectedInput.guessOutput}
                     mode="text"
                     readOnly={true}
                     theme="github"
