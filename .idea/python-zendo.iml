@@ -8,6 +8,7 @@
     </content>
     <orderEntry type="jdk" jdkName="Python 3.6 (python-zendo-dWN--0x6)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="@types/jest" level="application" />
   </component>
   <component name="PackageRequirementsSettings">
     <option name="requirementsPath" value="" />
