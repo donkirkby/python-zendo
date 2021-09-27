@@ -20,13 +20,12 @@ The data is stored in a Firebase realtime database.
     * `author` the user id of the player who submitted it
     * `isRuleFollowed` true, if the rule writer found that it followed the
       secret rule.
-    * `areGuessesFollowed/$userId` true, if the rule guesser found that it
-      followed their rule guess. Writeable by the guesser. `$userId` is who
-      wrote the guess.
-  * `profile` details of the game that are visible to all players, not
-    implemented yet. Maybe start and end times? Source code, once revealed?
-  * `guesses/$userId` holds the source code for each player's guess. Writeable
-    if you use your own user id, readable by all players in this game.
+    * `isGuessFollowed` true, if the guess writer found that it followed the
+      guessed rule.
+  * `guess` Writeable if you use your own user id as the author. When a player
+    submits a guess, they completely replace the previous guess and input flags.
+    * `rule` source code for the current guess.
+    * `author` user id of the player who submitted it.
 
 ## Available Scripts
 
