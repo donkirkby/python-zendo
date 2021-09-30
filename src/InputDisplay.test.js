@@ -102,24 +102,20 @@ it('updates results for changed guess', () => {
     expect(guessUpdates).toStrictEqual(expectedUpdates);
 });
 
-/*
- * Set user id
- * Update players
- * Update inputs
- * - without any current rule
- * - with secret rule set
- * - with this user's guess submitted
- * - with this user's edited guess selected
- * Update guess
- * Show your guess
- * Show submitted guess
- * Hide guess
+it('collects and clears updates', () => {
+    let dbInputs = {id1: {text: 'a'}},
+        expectedUpdates = {
+            'inputs/id1/followsGuess': true,
+            'inputs/id1/followsRule': false};
+    let display = new InputDisplay();
+    mockEvaluate(display);
+    display.setRule('b', {});
+    display.setGuess('a', {});
+    display.updateInputs(dbInputs);
 
-  * `inputs/$inputId` records inputs for the rule writer to process. You can
-    write a new record, if the author matches your user id.
-    * `text` the input text, a single line.
-    * `author` the user id of the player who submitted it
-    * `isRuleFollowed` true, if the rule writer found that it followed the
-      secret rule.
+    let updates = display.collectUpdates();
 
- */
+    expect(updates).toStrictEqual(expectedUpdates);
+    expect(display.ruleUpdates).toStrictEqual({});
+    expect(display.guessUpdates).toStrictEqual({});
+});

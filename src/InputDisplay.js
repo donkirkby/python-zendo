@@ -72,6 +72,23 @@ class InputDisplay {
             }
         }
     };
+
+    collectUpdates = () => {
+        const updates = {};
+        transferUpdates(this.ruleUpdates, updates);
+        transferUpdates(this.guessUpdates, updates);
+        return updates;
+    };
+}
+
+function transferUpdates(source, target) {
+    if (source === undefined) {
+        return;
+    }
+    for (const [key, value] of Object.entries(source)) {
+        target[key] = value;
+        delete source[key];
+    }
 }
 
 export default InputDisplay;
