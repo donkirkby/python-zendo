@@ -5,9 +5,9 @@
   "homepage": ".",
   "dependencies": {
     "brace": "^0.11.1",
-    "firebase": "^9.0.2",
+    "firebase": "^9.1.1",
     "react": "^17.0.2",
-    "react-ace": "^9.4.3",
+    "react-ace": "^9.4.4",
     "react-dom": "^17.0.2",
     "react-scripts": "4.0.3"
   },
