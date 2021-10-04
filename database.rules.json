@@ -19,17 +19,13 @@
         "inputs": {
           "$inputId": {
             ".write": "data.parent().parent().child('players').child(auth.uid).child('role').val() === 'owner' || !data.exists() && newData.child('author').val()==auth.uid && !newData.child('isRuleFollowed').exists()",
-            "areGuessesFollowed": {
-              "$uid": {
-                ".write": "($uid === auth.uid) && data.parent().parent().parent().parent().parent().child('players').child(auth.uid).exists()"
-              }
+            "followsGuess": {
+              ".write": "data.parent().parent().parent().child('guess').child('author').val() === auth.uid"
             }
           }
         },
-        "guesses": {
-          "$uid": {
-            ".write": "($uid === auth.uid) && data.parent().parent().child('players').child(auth.uid).exists()"
-          }
+        "guess": {
+          ".write": "newData.child('author').val() === auth.uid"
         }
       }
     }

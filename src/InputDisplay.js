@@ -79,6 +79,13 @@ class InputDisplay {
         transferUpdates(this.guessUpdates, updates);
         return updates;
     };
+
+    clearResults = () => {
+        for (const input of Object.values(this.inputs)) {
+            delete input.followsRule;
+            delete input.followsGuess;
+        }
+    };
 }
 
 function transferUpdates(source, target) {

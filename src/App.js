@@ -48,7 +48,6 @@ class App extends Component {
             currentGuess: null,  // guess in database
             newGuess: ruleGuess,  // guess being edited
             isRuleVisible: true,
-            visibilityButtonName: "Hide Rule",
             displayedGuess: null,  // or 'new' or 'current'
             canSubmitGuess: false,
             newInput: "",
@@ -94,9 +93,11 @@ class App extends Component {
     };
 
     handleRuleGuessChange = ruleGuess => {
-        this.state.inputDisplay.setGuess(ruleGuess);
-        this.setState({inputs: this.state.inputDisplay.inputs})
-        this.scheduleSave();
+        this.setState({newGuess: ruleGuess});
+        if (this.state.displayedGuess === 'new') {
+            this.state.inputDisplay.setGuess(ruleGuess);
+            this.scheduleSave();
+        }
     };
 
     scheduleSave = () => {
@@ -121,6 +122,9 @@ class App extends Component {
     handleRuleState = () => {
         if (this.state.ruleState === 'new') {
             this.setState({ruleState: 'locked'});
+            this.state.inputDisplay.clearResults();
+            this.state.inputDisplay.setRule(this.state.rule, {});
+            this.writeUpdates();
         }
     };
 
@@ -191,23 +195,23 @@ class App extends Component {
             name: this.state.playerName,
             role: 'player'
         }).then(() => {this.registerListeners(this.state.gameId);});
+        this.state.inputDisplay.setRule('');
+        this.setState({isWriter: false});
     };
 
     handleNewGuess = () => {
         this.state.inputDisplay.setGuess(this.state.newGuess);
         this.setState({
             displayedGuess: 'new',
-            inputDisplay: this.state.inputDisplay
+            canSubmitGuess: true
         });
     };
 
     handleCurrentGuess = () => {
-        const dbUpdates = (this.state.isGuessAuthor ? {} : undefined);
-        this.state.inputDisplay.setGuess(this.state.currentGuess, dbUpdates);
-        this.state.inputDisplay.collectUpdates();
+        this.state.inputDisplay.setGuess('');
         this.setState({
             displayedGuess: 'current',
-            inputDisplay: this.state.inputDisplay
+            canSubmitGuess: false
         });
     };
 
@@ -239,17 +243,20 @@ class App extends Component {
     handleGuessUpdated = (snapshot) => {
         let guessInfo = snapshot.val();
         if (guessInfo === null) {
-            guessInfo = {rule: ''};
+            guessInfo = {rule: null};
         }
-        const isGuessAuthor = guessInfo.author === this.state.dataSource.userId,
-            dbUpdates = (isGuessAuthor ? {} : undefined);
-        if (this.state.displayedGuess === 'current') {
-            this.state.inputDisplay.setGuess(guessInfo.rule, dbUpdates);
+        const isGuessAuthor = guessInfo.author === this.state.dataSource.userId;
+        if (isGuessAuthor) {
+            this.state.inputDisplay.clearResults();
+            this.state.inputDisplay.setGuess(guessInfo.rule, {});
+            this.writeUpdates();
+        }
+        else {
+            this.state.inputDisplay.setGuess('');
         }
         this.setState({
             currentGuess: guessInfo.rule,
-            isGuessAuthor: isGuessAuthor,
-            inputDisplay: this.state.inputDisplay
+            isGuessAuthor: isGuessAuthor
         });
     };
 
@@ -283,23 +290,29 @@ class App extends Component {
         if ( ! this.state.isGuessAuthor) {
             display.updateInputs(inputs);
         } else {
-            display.updateInputs(inputs);
             display.setGuess(this.state.currentGuess, dbUpdates);
+            display.clearResults();
+            display.updateInputs(inputs);
             if (this.state.displayedGuess === 'new') {
                 display.setGuess(this.state.newGuess);
+                display.updateInputs(inputs);
             }
+        }
+        this.writeUpdates(dbUpdates);
+        this.setState({inputDisplay: display});
+    };
+
+    writeUpdates = (dbUpdates) => {
+        const display = this.state.inputDisplay,
+            gameRef = ref(
+                this.state.dataSource.database,
+                'games/' + this.state.gameId);
+        if (dbUpdates === undefined) {
+            dbUpdates = {};
         }
         Object.assign(dbUpdates, display.collectUpdates());
 
-        const gameRef = ref(
-                this.state.dataSource.database,
-                'games/'+this.state.gameId);
         update(gameRef, dbUpdates);
-        this.setState({
-            newInput: "",
-            inputsDisplay: display,
-            selectedInput: display.inputs.length - 1
-        });
     };
 
     render() {
@@ -346,7 +359,7 @@ class App extends Component {
                     }}/>
                 <p>Output:</p>
                 <AceEditor
-                    value={selectedInput && selectedInput.ruleOutput}
+                    value={(selectedInput && selectedInput.ruleOutput) || ''}
                     mode="text"
                     readOnly={true}
                     theme="github"
@@ -373,6 +386,9 @@ class App extends Component {
                 <div className="interactions">
                 <div className="inputs">
                 {Object.values(inputs).map((entry, entryIndex) => {
+                    if (entry.followsRule === undefined && ! this.state.isWriter) {
+                        return null;
+                    }
                     return <div key={"item" + entryIndex}>
                         <label>
                             <input type="radio"
@@ -392,7 +408,7 @@ class App extends Component {
                                  ((entry.followsGuess && thumb_up) || thumb_down)
                                  }/>
                         </label>
-                    </div>
+                    </div>;
                 })}
                 <input
                     type="text"
@@ -415,6 +431,7 @@ class App extends Component {
                 <button
                     type="button"
                     onClick={this.handleNewGuess}
+                    disabled={this.state.displayedGuess === 'new'}
                     className="small"
                 >New Guess</button>
                 <button
@@ -425,7 +442,8 @@ class App extends Component {
                 >Submit Guess</button>
                 <button
                     type="button"
-                    disabled={this.state.currentGuess !== null}
+                    disabled={this.state.currentGuess === null ||
+                        this.state.displayedGuess === 'current'}
                     onClick={this.handleCurrentGuess}
                     className="small"
                 >Current Guess</button>
@@ -471,14 +489,6 @@ class App extends Component {
                         showLineNumbers: false,
                         tabSize: 4,
                     }}/>
-                    <p>
-                        <button
-                            type="button"
-                            onClick={this.handleSubmitGuess}
-                            className="small"
-                            disabled={this.state.displayedGuess !== "new"}
-                        >Submit Guess</button>
-                    </p>
                 </div>}
             </div>
         );

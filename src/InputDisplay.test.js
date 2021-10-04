@@ -46,6 +46,21 @@ it('updates results for new inputs', () => {
     expect(ruleUpdates).toStrictEqual(expectedUpdates);
 });
 
+it('clears results', () => {
+    let dbInputs = {id1: {text: 'x'}, id2: {text: 'y'}},
+        expectedInputs = {id1: {text: 'x'}, id2: {text: 'y'}};
+    let display = new InputDisplay(),
+        ruleUpdates = {};
+
+    mockEvaluate(display);
+    display.setRule('x', ruleUpdates);
+    display.updateInputs(dbInputs);
+
+    display.clearResults();
+
+    expect(display.inputs).toStrictEqual(expectedInputs);
+});
+
 it('updates results for new guess', () => {
     let dbInputs = {id1: {text: 'a'}, id2: {text: 'b'}},
         expectedInputs = {
