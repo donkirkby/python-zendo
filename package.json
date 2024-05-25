@@ -5,7 +5,7 @@
   "homepage": ".",
   "dependencies": {
     "brace": "^0.11.1",
-    "firebase": "^10.12.0",
+    "firebase": "^10.12.1",
     "react": "^18.3.1",
     "react-ace": "^11.0.1",
     "react-dom": "^18.3.1",
